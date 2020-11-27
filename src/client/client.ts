@@ -1,12 +1,10 @@
 import * as THREE from '/build/three.module.js'
-import { OrbitControls } from '/jsm/controls/OrbitControls'
+import { PointerLockControls } from '/jsm/controls/PointerLockControls'
 import Stats from '/jsm/libs/stats.module'
 
 const scene: THREE.Scene = new THREE.Scene()
-const axesHelper = new THREE.AxesHelper(5)
-scene.add(axesHelper)
 
-var light = new THREE.HemisphereLight();
+var light = new THREE.AmbientLight();
 scene.add(light);
 
 const camera: THREE.PerspectiveCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
@@ -15,46 +13,71 @@ const renderer: THREE.WebGLRenderer = new THREE.WebGLRenderer()
 renderer.setSize(window.innerWidth, window.innerHeight)
 document.body.appendChild(renderer.domElement)
 
-const controls = new OrbitControls(camera, renderer.domElement)
-//controls.addEventListener('change', () => console.log("Controls Change")) //this line is unnecessary if you are already re-rendering within the animation loop 
-//controls.addEventListener('start', () => console.log("Controls Start Event"))
-//controls.addEventListener('end', () => console.log("Controls End Event"))
+const menuPanel = document.getElementById('menuPanel');
+const startButton = document.getElementById('startButton');
+startButton.addEventListener('click', function () {
+    controls.lock();
+}, false);
 
-controls.autoRotate = true
-controls.autoRotateSpeed = 10
-//controls.enableDamping = true
-//controls.dampingFactor = .01
-// controls.enableKeys = true
-// controls.keys = {
-//     LEFT: 37, //left arrow
-//     UP: 38, // up arrow
-//     RIGHT: 39, // right arrow
-//     BOTTOM: 40 // down arrow
-// }
-// controls.mouseButtons = {
-//     LEFT: THREE.MOUSE.ROTATE,
-//     MIDDLE: THREE.MOUSE.DOLLY,
-//     RIGHT: THREE.MOUSE.PAN
-// }
-// controls.touches = {
-//     ONE: THREE.TOUCH.ROTATE,
-//     TWO: THREE.TOUCH.DOLLY_PAN
-// }
-//controls.screenSpacePanning = true
-//controls.minAzimuthAngle = 0
-//controls.maxAzimuthAngle = Math.PI / 2
-//controls.minPolarAngle = Math.PI / 2
-//controls.maxPolarAngle = Math.PI - (Math.PI / 2)
-// controls.maxDistance = 4;
-// controls.minDistance = 2;
+const controls = new PointerLockControls(camera, renderer.domElement)
+// controls.addEventListener('change', () => console.log("Controls Change"))
+controls.addEventListener('lock', () => menuPanel.style.display = 'none');
+controls.addEventListener('unlock', () => menuPanel.style.display = 'block');
 
-const geometry: THREE.BoxGeometry = new THREE.BoxGeometry()
+
+
+const planeGeometry: THREE.PlaneGeometry = new THREE.PlaneGeometry(100, 100, 50, 50)
 const material: THREE.MeshBasicMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true })
+const plane: THREE.Mesh = new THREE.Mesh(planeGeometry, material)
+plane.rotateX(-Math.PI / 2)
+scene.add(plane)
 
-const cube: THREE.Mesh = new THREE.Mesh(geometry, material)
-scene.add(cube)
+let cubes: THREE.Mesh[] = new Array()
+for (let i = 0; i < 100; i++) {
+    const geo: THREE.BoxGeometry = new THREE.BoxGeometry(Math.random() * 4, Math.random() * 16, Math.random() * 4)
+    const mat: THREE.MeshBasicMaterial = new THREE.MeshBasicMaterial({ wireframe: true })
+    switch (i % 3) {
+        case 0:
+            mat.color = new THREE.Color(0xff0000)
+            break;
+        case 1:
+            mat.color = new THREE.Color(0xffff00)
+            break;
+        case 2:
+            mat.color = new THREE.Color(0x0000ff)
+            break;
+    }
+    const cube = new THREE.Mesh(geo, mat)
+    cubes.push(cube)
+}
+cubes.forEach((c) => {
+    c.position.x = (Math.random() * 100) - 50
+    c.position.z = (Math.random() * 100) - 50
+    c.geometry.computeBoundingBox()
+    c.position.y = ((c.geometry.boundingBox as THREE.Box3).max.y - (c.geometry.boundingBox as THREE.Box3).min.y) / 2
+    scene.add(c)
+});
 
+camera.position.y = 1
 camera.position.z = 2
+
+const onKeyDown = function (event) {
+    switch (event.keyCode) {
+        case 87: // w
+            controls.moveForward(.25)
+            break;
+        case 65: // a
+            controls.moveRight(-.25)
+            break;
+        case 83: // s
+            controls.moveForward(-.25)
+            break;
+        case 68: // d
+            controls.moveRight(.25)
+            break;
+    }
+};
+document.addEventListener('keydown', onKeyDown, false);
 
 window.addEventListener('resize', onWindowResize, false)
 function onWindowResize() {
@@ -70,7 +93,7 @@ document.body.appendChild(stats.dom)
 var animate = function () {
     requestAnimationFrame(animate)
 
-    controls.update()
+    //controls.update()
 
     render()
 
