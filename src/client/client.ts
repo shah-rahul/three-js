@@ -1,11 +1,12 @@
 import * as THREE from '/build/three.module.js'
-import { PointerLockControls } from '/jsm/controls/PointerLockControls'
+import { OrbitControls } from '/jsm/controls/OrbitControls'
+import { DragControls } from '/jsm/controls/DragControls'
+import { TransformControls } from '/jsm/controls/TransformControls'
 import Stats from '/jsm/libs/stats.module'
 
 const scene: THREE.Scene = new THREE.Scene()
-
-var light = new THREE.AmbientLight();
-scene.add(light);
+const axesHelper = new THREE.AxesHelper(5)
+scene.add(axesHelper)
 
 const camera: THREE.PerspectiveCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
 
@@ -13,74 +14,62 @@ const renderer: THREE.WebGLRenderer = new THREE.WebGLRenderer()
 renderer.setSize(window.innerWidth, window.innerHeight)
 document.body.appendChild(renderer.domElement)
 
-const menuPanel = document.getElementById('menuPanel');
-const startButton = document.getElementById('startButton');
-startButton.addEventListener('click', function () {
-    controls.lock();
-}, false);
+renderer.domElement.ondragstart = function (event) { event.preventDefault(); return false; };
 
-const controls = new PointerLockControls(camera, renderer.domElement)
-// controls.addEventListener('change', () => console.log("Controls Change"))
-controls.addEventListener('lock', () => menuPanel.style.display = 'none');
-controls.addEventListener('unlock', () => menuPanel.style.display = 'block');
+const geometry: THREE.BoxGeometry = new THREE.BoxGeometry()
+const material: THREE.MeshNormalMaterial = new THREE.MeshNormalMaterial({ transparent: true })
 
+const cube: THREE.Mesh = new THREE.Mesh(geometry, material)
+scene.add(cube)
 
+const orbitControls = new OrbitControls(camera, renderer.domElement)
 
-const planeGeometry: THREE.PlaneGeometry = new THREE.PlaneGeometry(100, 100, 50, 50)
-const material: THREE.MeshBasicMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true })
-const plane: THREE.Mesh = new THREE.Mesh(planeGeometry, material)
-plane.rotateX(-Math.PI / 2)
-scene.add(plane)
-
-let cubes: THREE.Mesh[] = new Array()
-for (let i = 0; i < 100; i++) {
-    const geo: THREE.BoxGeometry = new THREE.BoxGeometry(Math.random() * 4, Math.random() * 16, Math.random() * 4)
-    const mat: THREE.MeshBasicMaterial = new THREE.MeshBasicMaterial({ wireframe: true })
-    switch (i % 3) {
-        case 0:
-            mat.color = new THREE.Color(0xff0000)
-            break;
-        case 1:
-            mat.color = new THREE.Color(0xffff00)
-            break;
-        case 2:
-            mat.color = new THREE.Color(0x0000ff)
-            break;
-    }
-    const cube = new THREE.Mesh(geo, mat)
-    cubes.push(cube)
-}
-cubes.forEach((c) => {
-    c.position.x = (Math.random() * 100) - 50
-    c.position.z = (Math.random() * 100) - 50
-    c.geometry.computeBoundingBox()
-    c.position.y = ((c.geometry.boundingBox as THREE.Box3).max.y - (c.geometry.boundingBox as THREE.Box3).min.y) / 2
-    scene.add(c)
+const dragControls = new DragControls([cube], camera, renderer.domElement)
+dragControls.addEventListener("hoveron", function () {
+    orbitControls.enabled = false;
 });
+dragControls.addEventListener("hoveroff", function () {
+    orbitControls.enabled = true;
+});
+dragControls.addEventListener('dragstart', function (event) {
+    event.object.material.opacity = 0.33
+})
+dragControls.addEventListener('dragend', function (event) {
+    event.object.material.opacity = 1
+})
 
-camera.position.y = 1
-camera.position.z = 2
+const transformControls = new TransformControls(camera, renderer.domElement);
+transformControls.attach(cube);
+transformControls.setMode("rotate")
+scene.add(transformControls);
 
-const onKeyDown = function (event) {
-    switch (event.keyCode) {
-        case 87: // w
-            controls.moveForward(.25)
-            break;
-        case 65: // a
-            controls.moveRight(-.25)
-            break;
-        case 83: // s
-            controls.moveForward(-.25)
-            break;
-        case 68: // d
-            controls.moveRight(.25)
-            break;
+transformControls.addEventListener('dragging-changed', function (event) {
+    orbitControls.enabled = !event.value
+    dragControls.enabled = !event.value
+})
+
+const backGroundTexture = new THREE.CubeTextureLoader().load(["img/px_eso0932a.jpg", "img/nx_eso0932a.jpg", "img/py_eso0932a.jpg", "img/ny_eso0932a.jpg", "img/pz_eso0932a.jpg", "img/nz_eso0932a.jpg"]);
+scene.background = backGroundTexture;
+
+window.addEventListener('keydown', function (event) {
+    switch (event.key) {
+        case "g":
+            transformControls.setMode("translate")
+            break
+        case "r":
+            transformControls.setMode("rotate")
+            break
+        case "s":
+            transformControls.setMode("scale")
+            break
     }
-};
-document.addEventListener('keydown', onKeyDown, false);
+})
+
+camera.position.z = 2
 
 window.addEventListener('resize', onWindowResize, false)
 function onWindowResize() {
+
     camera.aspect = window.innerWidth / window.innerHeight
     camera.updateProjectionMatrix()
     renderer.setSize(window.innerWidth, window.innerHeight)
@@ -93,8 +82,6 @@ document.body.appendChild(stats.dom)
 var animate = function () {
     requestAnimationFrame(animate)
 
-    //controls.update()
-
     render()
 
     stats.update()
@@ -103,4 +90,5 @@ var animate = function () {
 function render() {
     renderer.render(scene, camera)
 }
-animate();
+
+animate(); 
