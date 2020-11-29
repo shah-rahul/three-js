@@ -1,40 +1,36 @@
 import * as THREE from '/build/three.module.js';
 import { OrbitControls } from '/jsm/controls/OrbitControls';
-import { GLTFLoader } from '/jsm/loaders/GLTFLoader';
-import { DRACOLoader } from '/jsm/loaders/DRACOLoader';
+import { FBXLoader } from '/jsm/loaders/FBXLoader';
 import Stats from '/jsm/libs/stats.module';
 const scene = new THREE.Scene();
 const axesHelper = new THREE.AxesHelper(5);
 scene.add(axesHelper);
+let light = new THREE.PointLight();
+light.position.set(0.8, 1.4, 1.0);
+scene.add(light);
+let ambientLight = new THREE.AmbientLight();
+scene.add(ambientLight);
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.z = 2;
+camera.position.set(0.8, 1.4, 1.0);
 const renderer = new THREE.WebGLRenderer();
-renderer.physicallyCorrectLights = true;
-renderer.shadowMap.enabled = true;
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 const controls = new OrbitControls(camera, renderer.domElement);
-var dracoLoader = new DRACOLoader();
-dracoLoader.setDecoderPath('/js/libs/draco/');
-dracoLoader.setDecoderConfig({ type: 'js' });
-const loader = new GLTFLoader();
-loader.setDRACOLoader(dracoLoader);
-loader.load('models/monkey_compressed.glb', function (gltf) {
-    gltf.scene.traverse(function (child) {
+controls.screenSpacePanning = true;
+controls.target.set(0, 1, 0);
+const material = new THREE.MeshNormalMaterial();
+const fbxLoader = new FBXLoader();
+fbxLoader.load('models/sex.fbx', (object) => {
+    object.traverse(function (child) {
         if (child.isMesh) {
-            let m = child;
-            m.receiveShadow = true;
-            m.castShadow = true;
-        }
-        if (child.isLight) {
-            let l = child;
-            l.castShadow = true;
-            l.shadow.bias = -.003;
-            l.shadow.mapSize.width = 2048;
-            l.shadow.mapSize.height = 2048;
+            child.material = material;
+            if (child.material) {
+                child.material.transparent = false;
+            }
         }
     });
-    scene.add(gltf.scene);
+    object.scale.set(.01, .01, .01);
+    scene.add(object);
 }, (xhr) => {
     console.log((xhr.loaded / xhr.total * 100) + '% loaded');
 }, (error) => {
