@@ -8,6 +8,9 @@
         "paths": {
             "/build/three.module.js": ["../../node_modules/three/src/Three"],
             "/jsm/*": ["../../node_modules/three/examples/jsm/*"],
+            "/jsm/libs/dat.gui.module": ["../typings/dat.gui"],
+            "/jsm/libs/tween.module.min": ["../typings/tween.js"],
+            "/cannon/cannon.min": ["../typings/cannon"],
         },
         "moduleResolution": "node"
     },
